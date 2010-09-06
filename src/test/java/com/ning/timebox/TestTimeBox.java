@@ -4,6 +4,7 @@ import junit.framework.TestCase;
 import com.ning.timebox.clojure.CLJ;
 import com.ning.timebox.ruby.Rb;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -176,6 +177,24 @@ public class TestTimeBox extends TestCase
         assertTrue(box.react(10, TimeUnit.MILLISECONDS));
         assertEquals(1, flag.get());
     }
-
+    
+    public void testProviding() throws Exception
+    {
+        final AtomicInteger flag = new AtomicInteger(0);
+        assertTrue(new TimeBox(new Object() {
+            @Priority(1)
+            public void stuff(Dog dog)
+            {
+                flag.set(1);
+            }
+        }).providing(new Callable<Dog>() {
+            @Override
+            public Dog call() throws Exception
+            {
+                return new Dog("baz");
+            }
+        }).react(10, TimeUnit.MILLISECONDS));
+        assertEquals(flag.get(), 1);
+    }
 
 }
