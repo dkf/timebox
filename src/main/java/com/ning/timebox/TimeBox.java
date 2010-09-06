@@ -3,13 +3,16 @@ package com.ning.timebox;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.Vector;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -28,6 +31,7 @@ public class TimeBox
     private final Semaphore flag = new Semaphore(0);
     private final int highestPriority;
     private final ExecutorService service;
+    private final Vector<Future<?>> outstandingFutures = new Vector<Future<?>>();
 
     public TimeBox(Factory factory, Object handler) {
     	this(Executors.newCachedThreadPool(), factory, handler);
@@ -85,7 +89,7 @@ public class TimeBox
 
     public TimeBox providing(final Callable<?> callable, final int authority)
     {
-        service.submit(new Runnable() {
+        outstandingFutures.add(service.submit(new Runnable() {
             @Override
             public void run()
             {
@@ -95,7 +99,7 @@ public class TimeBox
                     throw new RuntimeException(e);
                 }
             }
-        });
+        }));
         return this;
     }
 
@@ -106,6 +110,7 @@ public class TimeBox
             for (Handler handler : handlers.values()) {
                 if (handler.isSatisfied()) {
                     handler.handle();
+                    cleanUpFutures();
                     return true; // satisfied highest priority so short circuit and return
                 }
             }
@@ -114,10 +119,18 @@ public class TimeBox
         for (Handler handler : handlers.values()) {
             if (handler.isSatisfied()) {
                 handler.handle();
+                cleanUpFutures();
                 return true;
             }
         }
         
+        cleanUpFutures();
         return false;
+    }
+    
+    private void cleanUpFutures() {
+        for (Future<?> future : outstandingFutures) {
+            future.cancel(true);
+        }
     }
 }

@@ -196,5 +196,42 @@ public class TestTimeBox extends TestCase
         }).react(10, TimeUnit.MILLISECONDS));
         assertEquals(flag.get(), 1);
     }
+    
+    public void testFutureCleanUp() throws Exception
+    {
+        final AtomicInteger flag = new AtomicInteger(0);
+        final CountDownLatch latch = new CountDownLatch(1);
+        
+        assertTrue(new TimeBox(new Object() {
+            
+            @Priority(1)
+            public void dog(Dog dog) {
+                flag.set(1);
+            }
+            
+            public void dogAndCat(Dog dog, Cat cat) {
+                flag.set(2);
+            }
+            
+        }).providing(new Callable<Dog>() {
+            @Override
+            public Dog call() throws Exception
+            {
+                return new Dog("foo");
+            }
+        }).providing(new Callable<Cat>() {
+            @Override
+            public Cat call() throws Exception
+            {
+                latch.await();
+                flag.set(2);
+                return new Cat(42);
+            }
+        }).react(100, TimeUnit.MILLISECONDS));
+        assertEquals(1, flag.get());
+        
+        latch.countDown();
+        assertEquals(1, flag.get());
+    }
 
 }
