@@ -1,5 +1,7 @@
 package com.ning.timebox;
 
+import static com.ning.timebox.TimeBox.timebox;
+import junit.framework.Assert;
 import junit.framework.TestCase;
 import com.ning.timebox.clojure.CLJ;
 import com.ning.timebox.ruby.Rb;
@@ -15,11 +17,12 @@ public class TestTimeBox extends TestCase
     public void testFirstChoice() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = new TimeBox<Boolean>(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void best(Dog dog, Cat cat)
             {
+                setResult(true);
                 flag.set(1);
             }
 
@@ -49,7 +52,7 @@ public class TestTimeBox extends TestCase
     public void testSecondChoice() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = new TimeBox<Boolean>(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void best(Dog dog, Cat cat)
@@ -60,6 +63,7 @@ public class TestTimeBox extends TestCase
             @Priority(2)
             public void okay(Dog dog)
             {
+                setResult(true);
                 flag.set(2);
             }
         });
@@ -82,7 +86,7 @@ public class TestTimeBox extends TestCase
     public void testFallback() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void best(Dog dog, Cat cat)
@@ -93,6 +97,7 @@ public class TestTimeBox extends TestCase
             @Priority(0)
             public void fallback()
             {
+                setResult(true);
                 flag.set(4);
             }
         });
@@ -104,11 +109,12 @@ public class TestTimeBox extends TestCase
     public void testMultipleProvides() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(2)
             public void okay(Dog dog)
             {
+                setResult(true);
                 flag.set(dog.getName().equals("Bean") ? 1 : 2);
             }
         });
@@ -132,7 +138,7 @@ public class TestTimeBox extends TestCase
     public void testMinimumAuthority() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void best(@Authority(10) Dog dog)
@@ -144,6 +150,7 @@ public class TestTimeBox extends TestCase
             @Priority(2)
             public void okay(Dog dog)
             {
+                setResult(true);
                 flag.set(2);
             }
         });
@@ -157,11 +164,12 @@ public class TestTimeBox extends TestCase
     public void testMinimumAuthorityMet() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void best(@Authority(10) Dog dog)
             {
+                setResult(true);
                 flag.set(1);
             }
 
@@ -181,10 +189,11 @@ public class TestTimeBox extends TestCase
     public void testProviding() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        assertTrue(new TimeBox(new Object() {
+        assertTrue(timebox(new Tesseract<Boolean>() {
             @Priority(1)
             public void stuff(Dog dog)
             {
+                setResult(true);
                 flag.set(1);
             }
         }).providing(new Callable<Dog>() {
@@ -202,15 +211,15 @@ public class TestTimeBox extends TestCase
         final AtomicInteger flag = new AtomicInteger(0);
         final CountDownLatch latch = new CountDownLatch(1);
         
-        assertTrue(new TimeBox(new Object() {
+        assertTrue(timebox(new Tesseract<Boolean>() {
             
             @Priority(1)
             public void dog(Dog dog) {
-                flag.set(1);
+                setResult(true);
             }
             
             public void dogAndCat(Dog dog, Cat cat) {
-                flag.set(2);
+                setResult(false);
             }
             
         }).providing(new Callable<Dog>() {
@@ -224,14 +233,14 @@ public class TestTimeBox extends TestCase
             public Cat call() throws Exception
             {
                 latch.await();
-                flag.set(2);
+                flag.set(1);
                 return new Cat(42);
             }
         }).react(100, TimeUnit.MILLISECONDS));
-        assertEquals(1, flag.get());
+        assertEquals(0, flag.get());
         
         latch.countDown();
-        assertEquals(1, flag.get());
+        assertEquals(0, flag.get());
     }
 
 }

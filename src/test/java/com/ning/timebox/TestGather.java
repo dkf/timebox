@@ -1,5 +1,7 @@
 package com.ning.timebox;
 
+import static com.ning.timebox.TimeBox.timebox;
+
 import com.ning.timebox.clojure.CLJ;
 import com.ning.timebox.ruby.Rb;
 import junit.framework.TestCase;
@@ -15,11 +17,12 @@ public class TestGather extends TestCase
     public void testUnguardedGather() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void best(@Gather Collection<Dog> dogs)
             {
+                setResult(true);
                 flag.set(dogs.size());
             }
         });
@@ -43,11 +46,12 @@ public class TestGather extends TestCase
     public void testGuardWithRuby() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void collectPuppies(@Gather @Rb("|d| d.age < 2") Collection<Dog> dogs)
             {
+                setResult(true);
                 flag.set(dogs.size());
             }
         });
@@ -71,11 +75,12 @@ public class TestGather extends TestCase
     public void testGuardWithClojure() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void collectPuppies(@Gather @CLJ("#(< (.getAge %) 2)") Collection<Dog> dogs)
             {
+                setResult(true);
                 flag.set(dogs.size());
             }
         });
@@ -99,11 +104,12 @@ public class TestGather extends TestCase
     public void testGuardWithGuardMethod() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void collectPuppies(@Gather @GuardMethod("isPuppy") Collection<Dog> dogs)
             {
+                setResult(true);
                 flag.set(dogs.size());
             }
 

@@ -1,5 +1,7 @@
 package com.ning.timebox;
 
+import static com.ning.timebox.TimeBox.timebox;
+
 import com.ning.timebox.clojure.CLJ;
 import com.ning.timebox.ruby.Rb;
 import junit.framework.TestCase;
@@ -12,7 +14,7 @@ public class TestEmbeddedLanguageGuards extends TestCase
     public void testClojureParamAnnotation() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void best(@CLJ("#(> (.getAge %) 12)") Dog dog)
@@ -23,6 +25,7 @@ public class TestEmbeddedLanguageGuards extends TestCase
             @Priority(2)
             public void okay(Dog dog)
             {
+                setResult(true);
                 flag.set(2);
             }
         });
@@ -36,11 +39,12 @@ public class TestEmbeddedLanguageGuards extends TestCase
     public void testClojureParamAnnotationOkay() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void best(@CLJ("#(> (.getAge %) 6)") Dog dog)
             {
+                setResult(true);
                 flag.set(1);
             }
 
@@ -61,7 +65,7 @@ public class TestEmbeddedLanguageGuards extends TestCase
     public void testClojureMethodAnnotation() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             @CLJ("#(> (.getAge %1) (.getLivesRemaining %2))")
@@ -73,6 +77,7 @@ public class TestEmbeddedLanguageGuards extends TestCase
             @Priority(2)
             public void okay(Dog dog, Cat cat)
             {
+                setResult(true);
                 flag.set(2);
             }
         });
@@ -88,7 +93,7 @@ public class TestEmbeddedLanguageGuards extends TestCase
     public void testRubyMethodPredicateWhichFails() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             @Rb("{ |dog, cat| dog.age > cat.livesRemaining }")
@@ -100,6 +105,7 @@ public class TestEmbeddedLanguageGuards extends TestCase
             @Priority(2)
             public void okay(Dog dog, Cat cat)
             {
+                setResult(true);
                 flag.set(2);
             }
         });
@@ -114,12 +120,13 @@ public class TestEmbeddedLanguageGuards extends TestCase
     public void testRubyMethodPredicateWhichPasses() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             @Rb("|dog, cat| dog.age < cat.livesRemaining")
             public void best(Dog dog, Cat cat)
             {
+                setResult(true);
                 flag.set(1);
             }
 
@@ -140,11 +147,12 @@ public class TestEmbeddedLanguageGuards extends TestCase
     public void testRubyParamPredicateWhichPasses() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void best(@Rb("|d| d.age == 1") Dog dog, Cat cat)
             {
+                setResult(true);
                 flag.set(1);
             }
 
@@ -165,13 +173,14 @@ public class TestEmbeddedLanguageGuards extends TestCase
     public void testRubyAndClojureBaby() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             @Rb("{ |dog, cat| dog.age == cat.livesRemaining }")
             @CLJ("#(= (.getAge %1) (.getLivesRemaining %2))")
             public void best(Dog dog, Cat cat)
             {
+                setResult(true);
                 flag.set(1);
             }
 
@@ -192,7 +201,7 @@ public class TestEmbeddedLanguageGuards extends TestCase
     public void testRubyAndClojureBabymethodParamsRubyOneShouldFail() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void best(@Rb("|d| d.age == 8") @CLJ("#(= (.getName %1) \"Bouncer\")") Dog dog, Cat cat)
@@ -203,6 +212,7 @@ public class TestEmbeddedLanguageGuards extends TestCase
             @Priority(2)
             public void okay(Dog dog, Cat cat)
             {
+                setResult(true);
                 flag.set(2);
             }
         });
@@ -217,7 +227,7 @@ public class TestEmbeddedLanguageGuards extends TestCase
     public void testRubyAndClojureBabymethodParamsClojureOneShouldFail() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void best(@Rb("|d| d.age == 7") @CLJ("#(= (.getName %1) \"Bean\")") Dog dog, Cat cat)
@@ -228,6 +238,7 @@ public class TestEmbeddedLanguageGuards extends TestCase
             @Priority(2)
             public void okay(Dog dog, Cat cat)
             {
+                setResult(true);
                 flag.set(2);
             }
         });
@@ -242,11 +253,12 @@ public class TestEmbeddedLanguageGuards extends TestCase
     public void testRubyAndClojureBabymethodParamsBothShouldPass() throws Exception
     {
         final AtomicInteger flag = new AtomicInteger(0);
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void best(@Rb("|d| d.age == 7") @CLJ("#(= (.getName %1) \"Bouncer\")") Dog dog, Cat cat)
             {
+                setResult(true);
                 flag.set(1);
             }
 

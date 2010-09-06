@@ -18,9 +18,9 @@ import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
 
-public class TimeBox
+public class TimeBox<T>
 {
-    private final SortedMap<Integer, Handler> handlers = new TreeMap<Integer, Handler>(new Comparator<Integer>()
+    private final SortedMap<Integer, Handler<T>> handlers = new TreeMap<Integer, Handler<T>>(new Comparator<Integer>()
     {
         public int compare(Integer first, Integer second)
         {
@@ -33,11 +33,11 @@ public class TimeBox
     private final ExecutorService service;
     private final Vector<Future<?>> outstandingFutures = new Vector<Future<?>>();
 
-    public TimeBox(Factory factory, Object handler) {
+    public TimeBox(Factory factory, Tesseract<T> handler) {
     	this(Executors.newCachedThreadPool(), factory, handler);
     }
 	
-    public TimeBox(ExecutorService service, Factory factory, Object handler)
+    public TimeBox(ExecutorService service, Factory factory, Tesseract<T> handler)
     {
         this.service = service;
         int hp = Integer.MIN_VALUE;
@@ -48,7 +48,7 @@ public class TimeBox
                 if (priority > hp) {
                     hp = priority;
                 }
-                Handler h = new Handler(factory, handler, method);
+                Handler<T> h = new Handler<T>(factory, handler, method);
                 if (handlers.containsKey(priority)) {
                     throw new IllegalArgumentException(format("multiple reactor methods have priority %d", priority));
                 }
@@ -58,7 +58,7 @@ public class TimeBox
         highestPriority = hp;
     }
 
-    public TimeBox(Object handler)
+    public TimeBox(Tesseract<T> handler)
     {
         this(new DefaultFactory(), handler);
     }
@@ -72,8 +72,8 @@ public class TimeBox
     {
         assert authority > Long.MIN_VALUE;
 
-        final Class type = value.getClass();
-        for (Map.Entry<Integer, Handler> entry : handlers.entrySet()) {
+        final Class<?> type = value.getClass();
+        for (Map.Entry<Integer, Handler<T>> entry : handlers.entrySet()) {
             entry.getValue().provide(type, value, authority);
             if (entry.getKey() == highestPriority && entry.getValue().isSatisfied()) {
                 flag.release();
@@ -82,12 +82,12 @@ public class TimeBox
         }
     }
 
-    public TimeBox providing(final Callable<?> callable)
+    public TimeBox<T> providing(final Callable<?> callable)
     {
         return providing(callable, 0);
     }
 
-    public TimeBox providing(final Callable<?> callable, final int authority)
+    public TimeBox<T> providing(final Callable<?> callable, final int authority)
     {
         outstandingFutures.add(service.submit(new Runnable() {
             @Override
@@ -103,34 +103,40 @@ public class TimeBox
         return this;
     }
 
-    public boolean react(long number, TimeUnit unit) throws InterruptedException, InvocationTargetException, IllegalAccessException
+    public T react(long number, TimeUnit unit) throws InterruptedException, InvocationTargetException, IllegalAccessException
     {
         if (flag.tryAcquire(number, unit)) {
             // flag will only be avail *if* highest priority handler is triggered
-            for (Handler handler : handlers.values()) {
+            for (Handler<T> handler : handlers.values()) {
                 if (handler.isSatisfied()) {
-                    handler.handle();
+                    T result = handler.handle();
                     cleanUpFutures();
-                    return true; // satisfied highest priority so short circuit and return
+                    return result; // satisfied highest priority so short circuit and return
                 }
             }
         }
 
-        for (Handler handler : handlers.values()) {
+        for (Handler<T> handler : handlers.values()) {
             if (handler.isSatisfied()) {
-                handler.handle();
+                T result = handler.handle();
                 cleanUpFutures();
-                return true;
+                return result;
             }
         }
         
         cleanUpFutures();
-        return false;
+        return null;
     }
     
-    private void cleanUpFutures() {
+    private void cleanUpFutures()
+    {
         for (Future<?> future : outstandingFutures) {
             future.cancel(true);
         }
+    }
+    
+    public static <T> TimeBox<T> timebox(Tesseract<T> handler)
+    {
+        return new TimeBox<T>(handler);
     }
 }

@@ -8,11 +8,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-class Handler
+class Handler<T>
 {
     private final Object[] values;
     private final long[] authorities;
-    private final Object target;
+    private final Tesseract<T> target;
     private final Method method;
     private final Class[] types;
     private final List<Predicate<Object[]>> methodTests = new ArrayList<Predicate<Object[]>>();
@@ -21,7 +21,7 @@ class Handler
     // null means do not gather
     private final Class[] gatheredTypes;
 
-    public Handler(Factory factory, Object target, Method method)
+    public Handler(Factory factory, Tesseract<T> target, Method method)
     {
         this.types = method.getParameterTypes();
         this.target = target;
@@ -169,8 +169,9 @@ class Handler
         return true;
     }
 
-    public void handle() throws InvocationTargetException, IllegalAccessException
+    public T handle() throws InvocationTargetException, IllegalAccessException
     {
         method.invoke(target, values);
+        return target.getResult();
     }
 }

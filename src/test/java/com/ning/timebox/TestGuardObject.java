@@ -1,5 +1,6 @@
 package com.ning.timebox;
 
+import static com.ning.timebox.TimeBox.timebox;
 import junit.framework.TestCase;
 
 import java.util.concurrent.TimeUnit;
@@ -10,7 +11,7 @@ public class TestGuardObject extends TestCase
     public void testGuardMethodOnArgument() throws Exception
     {
         final AtomicReference<String> flag = new AtomicReference<String>();
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             public void best(@GuardMethod("bestGuard") Dog dog)
@@ -21,6 +22,7 @@ public class TestGuardObject extends TestCase
             @Priority(2)
             public void okay(Dog dog)
             {
+                setResult(true);
                 flag.set("second");
             }
 
@@ -40,7 +42,7 @@ public class TestGuardObject extends TestCase
     public void testGuardMethodOnMethod() throws Exception
     {
         final AtomicReference<String> flag = new AtomicReference<String>();
-        final TimeBox box = new TimeBox(new Object()
+        final TimeBox<Boolean> box = timebox(new Tesseract<Boolean>()
         {
             @Priority(3)
             @GuardMethod("bestGuard")
@@ -52,6 +54,7 @@ public class TestGuardObject extends TestCase
             @Priority(2)
             public void okay(Dog dog)
             {
+                setResult(true);
                 flag.set("second");
             }
 
